@@ -22,7 +22,7 @@
 }
 
 .navbar__logo {
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  background: linear-gradient(135deg, #e50914 0%, #ff4444 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
@@ -30,7 +30,7 @@
   font-weight: bold;
   cursor: pointer;
   letter-spacing: 2px;
-  text-shadow: 0 0 30px rgba(102, 126, 234, 0.5);
+  text-shadow: 0 0 30px rgba(229, 9, 20, 0.5);
 }
 
 .navbar__links {
