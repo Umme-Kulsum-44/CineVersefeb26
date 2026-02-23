@@ -1,7 +1,10 @@
 import React, { useState } from 'react';
 import './Auth.css';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+const API_URL = import.meta.env.VITE_API_URL || 'https://cineverse-backend-1efh.onrender.com';
+
+console.log('API_URL:', API_URL);
+console.log('Environment:', import.meta.env);
 
 function Auth({ onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(false);
