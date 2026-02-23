@@ -32,6 +32,7 @@ function Auth({ onLoginSuccess }) {
     setError('');
 
     try {
+      console.log('Attempting to register at:', `${API_URL}/api/register`);
       const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,8 +49,9 @@ function Auth({ onLoginSuccess }) {
       setIsLogin(true);
       setFormData({ ...formData, name: '', email: '', phone: '' });
     } catch (err) {
+      console.error('Registration error:', err);
       if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to server. Please make sure the backend is running on port 3001.');
+        setError(`Cannot connect to backend at ${API_URL}. Backend status: Check if server is running.`);
       } else {
         setError(err.message);
       }
@@ -64,6 +66,7 @@ function Auth({ onLoginSuccess }) {
     setError('');
 
     try {
+      console.log('Attempting to login at:', `${API_URL}/api/login`);
       const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -82,8 +85,9 @@ function Auth({ onLoginSuccess }) {
       localStorage.setItem('user', JSON.stringify(data.user));
       onLoginSuccess(data.user);
     } catch (err) {
+      console.error('Login error:', err);
       if (err.message === 'Failed to fetch') {
-        setError('Cannot connect to server. Please make sure the backend is running on port 3001.');
+        setError(`Cannot connect to backend at ${API_URL}. Backend status: Check if server is running.`);
       } else {
         setError(err.message);
       }
