@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import './Auth.css';
 
+const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001';
+
 function Auth({ onLoginSuccess }) {
   const [isLogin, setIsLogin] = useState(false);
   const [formData, setFormData] = useState({
@@ -27,7 +29,7 @@ function Auth({ onLoginSuccess }) {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/register', {
+      const response = await fetch(`${API_URL}/api/register`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(formData)
@@ -59,7 +61,7 @@ function Auth({ onLoginSuccess }) {
     setError('');
 
     try {
-      const response = await fetch('http://localhost:3001/api/login', {
+      const response = await fetch(`${API_URL}/api/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
