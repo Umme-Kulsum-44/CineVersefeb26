@@ -1,120 +1,101 @@
 import express from 'express';
 import cors from 'cors';
 import bcrypt from 'bcryptjs';
-import mysql from 'mysql2/promise';
 import dotenv from 'dotenv';
+import pkg from 'pg';
 
 dotenv.config();
+console.log("DB_URL:", process.env.DB_URL);
+
+const { Client } = pkg;
 
 const app = express();
-
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint
-app.get('/', (req, res) => {
-  res.json({ status: 'CineVerse API is running', timestamp: new Date().toISOString() });
-});
-
-app.get('/health', (req, res) => {
-  res.json({ status: 'healthy', database: 'connected' });
-});
-
-// MySQL connection configuration from environment variables
-const dbConfig = {
-  host: process.env.DB_HOST,
-  port: parseInt(process.env.DB_PORT),
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
+// PostgreSQL connection (Supabase)
+const client = new Client({
+  connectionString: process.env.DB_URL,
   ssl: {
-    rejectUnauthorized: false
+    rejectUnauthorized: false,
   },
-  connectTimeout: 30000,
-  enableKeepAlive: true
-};
+});
 
-let pool;
-
-// Initialize database connection pool and create table
+// Connect DB
 async function initDatabase() {
   try {
-    // Create connection pool
-    pool = mysql.createPool(dbConfig);
-    
-    // Test connection
-    const connection = await pool.getConnection();
-    console.log('Connected to MySQL database');
-    
-    // Create users table if not exists
-    await connection.execute(`
+    await client.connect();
+    console.log("✅ Connected to Supabase");
+
+    // Create table if not exists
+    await client.query(`
       CREATE TABLE IF NOT EXISTS users (
         userId VARCHAR(255) PRIMARY KEY,
-        name VARCHAR(255) NOT NULL,
-        password VARCHAR(255) NOT NULL,
-        email VARCHAR(255) NOT NULL UNIQUE,
-        phone VARCHAR(20) NOT NULL
+        name TEXT NOT NULL,
+        password TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        phone TEXT NOT NULL
       )
     `);
-    console.log('Users table ready');
-    
-    connection.release();
+
+    console.log("✅ Users table ready");
   } catch (error) {
-    console.error('Database initialization error:', error);
-    console.error('Please check your database credentials and network connection');
+    console.error("❌ DB error:", error);
     process.exit(1);
   }
 }
 
-// Register endpoint
+// Health check
+app.get('/', (req, res) => {
+  res.json({ status: 'CineVerse API running' });
+});
+
+// Register
 app.post('/api/register', async (req, res) => {
   try {
     const { userId, name, password, email, phone } = req.body;
 
-    // Check if user already exists
-    const [existingUsers] = await pool.execute(
-      'SELECT * FROM users WHERE userId = ? OR email = ?',
+    // Check existing user
+    const result = await client.query(
+      'SELECT * FROM users WHERE userId=$1 OR email=$2',
       [userId, email]
     );
 
-    if (existingUsers.length > 0) {
-      return res.status(400).json({ error: 'User ID or Email already exists' });
+    if (result.rows.length > 0) {
+      return res.status(400).json({ error: 'User already exists' });
     }
 
-    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insert user
-    await pool.execute(
-      'INSERT INTO users (userId, name, password, email, phone) VALUES (?, ?, ?, ?, ?)',
+    await client.query(
+      'INSERT INTO users (userId, name, password, email, phone) VALUES ($1,$2,$3,$4,$5)',
       [userId, name, hashedPassword, email, phone]
     );
 
-    res.json({ message: 'Registration successful', userId });
+    res.json({ message: 'Registration successful' });
+
   } catch (error) {
-    console.error('Registration error:', error);
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
 
-// Login endpoint
+// Login
 app.post('/api/login', async (req, res) => {
   try {
     const { username, password } = req.body;
 
-    // Find user by userId or email
-    const [users] = await pool.execute(
-      'SELECT * FROM users WHERE userId = ? OR email = ?',
+    const result = await client.query(
+      'SELECT * FROM users WHERE userId=$1 OR email=$2',
       [username, username]
     );
 
-    if (users.length === 0) {
+    if (result.rows.length === 0) {
       return res.status(401).json({ error: 'Invalid credentials' });
     }
 
-    const user = users[0];
+    const user = result.rows[0];
 
-    // Compare password
     const isValid = await bcrypt.compare(password, user.password);
 
     if (!isValid) {
@@ -124,23 +105,24 @@ app.post('/api/login', async (req, res) => {
     res.json({
       message: 'Login successful',
       user: {
-        userId: user.userId,
+        userId: user.userid,
         name: user.name,
         email: user.email,
         phone: user.phone
       }
     });
+
   } catch (error) {
-    console.error('Login error:', error);
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 });
 
+// Start server
 const PORT = 3001;
 
-// Initialize database then start server
 initDatabase().then(() => {
   app.listen(PORT, () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`🚀 Server running on http://localhost:${PORT}`);
   });
 });
